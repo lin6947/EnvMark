@@ -1,0 +1,388 @@
+<!doctype html>
+<html lang="en" data-i18n-title="settingsTitle">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>EnvMark Settings</title>
+    <link rel="stylesheet" href="options.css" />
+  </head>
+  <body>
+    <main class="page">
+      <header class="hero">
+        <div class="hero__brand">
+          <img class="hero__logo" src="../assets/icons/icon-128-display.png" alt="EnvMark logo" />
+          <div>
+          <h1 data-i18n="settingsTitle">EnvMark Settings</h1>
+          <p data-i18n="settingsSubtitle">Manage environment marks and test accounts without editing JSON.</p>
+          </div>
+        </div>
+        <div class="actions">
+          <label class="locale-switcher" aria-label="Display Language">
+            <span class="locale-switcher__icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" focusable="false">
+                <path d="M12 3a9 9 0 1 0 0 18a9 9 0 0 0 0-18Zm0 0c2.2 2.4 3.5 5.7 3.5 9s-1.3 6.6-3.5 9m0-18C9.8 5.4 8.5 8.7 8.5 12s1.3 6.6 3.5 9m-8-9h16m-14.3-5.5h12.6M5.7 17.5h12.6" />
+              </svg>
+            </span>
+            <select id="locale-switcher" data-i18n-title="displayLanguage">
+              <option value="zh_CN" data-i18n="localeZhCN">简体中文</option>
+              <option value="en" data-i18n="localeEn">English</option>
+            </select>
+          </label>
+          <button id="load-sample" type="button" data-i18n="loadSample">Load Sample</button>
+          <button id="export-config" type="button" data-i18n="export">Export</button>
+          <button id="import-config-trigger" type="button" data-i18n="import">Import</button>
+          <button id="about-trigger" type="button" data-i18n="about">Support</button>
+          <input id="import-config" type="file" accept="application/json,.json" hidden />
+        </div>
+      </header>
+
+      <section class="layout">
+        <aside class="panel">
+          <div class="panel__head">
+            <h2 data-i18n="environments">Environments</h2>
+            <div class="panel__actions">
+              <button id="add-group" class="small-button" type="button" data-i18n="addGroup">Add Group</button>
+            </div>
+          </div>
+          <div id="environment-list" class="environment-list"></div>
+        </aside>
+
+        <section class="workspace">
+          <div class="workspace-shell">
+            <form id="environment-form" class="form">
+              <section id="section-basic" class="form-section">
+              <div class="section-title">
+                <h2 data-i18n="basic">Basic</h2>
+              </div>
+              <div class="field-grid">
+                <label class="field">
+                  <span data-i18n="name">Name</span>
+                  <input id="env-name" type="text" placeholder="Test Environment" data-i18n-placeholder="envNamePlaceholder" />
+                </label>
+                <label class="field">
+                  <span data-i18n="group">Group</span>
+                  <select id="env-group"></select>
+                </label>
+                <label class="field field--full">
+                  <span data-i18n="environmentUrl">Environment URL</span>
+                  <input id="env-homepage-url" type="url" placeholder="https://test.example.com/" data-i18n-placeholder="environmentUrlPlaceholder" />
+                </label>
+              </div>
+              <div id="basic-validation" class="validation-error" hidden></div>
+              </section>
+
+              <section id="section-rules" class="form-section">
+              <div class="section-title">
+                <div>
+                  <h2 data-i18n="urlRules">URL Rules</h2>
+                  <p class="section-title__hint" data-i18n="urlRulesHint">Control which pages match this environment.</p>
+                </div>
+                <button id="add-rule" class="small-button" type="button" data-i18n="addRule">Add Rule</button>
+              </div>
+              <div id="rules-list" class="stack-list"></div>
+              </section>
+
+              <section id="section-badge" class="form-section">
+              <div class="section-title section-title--with-toggle">
+                <div>
+                  <h2 data-i18n="badgeConfig">Badge Config</h2>
+                  <p class="section-title__hint" data-i18n="badgeConfigHint">Control the marker shown on matched pages.</p>
+                </div>
+                <label class="toggle-control section-title__toggle">
+                  <input id="env-badge-enabled" type="checkbox" />
+                  <span class="toggle-control__switch" aria-hidden="true"></span>
+                  <span data-i18n="badgeEnabled">Enable badge</span>
+                </label>
+              </div>
+              <div class="badge-layout">
+                <div class="badge-card badge-card--content">
+                  <div class="badge-card__head">
+                    <h3 data-i18n="badgeContent">Content</h3>
+                    <label class="check-field check-field--inline">
+                      <input id="env-title-prefix" type="checkbox" />
+                      <span data-i18n="titlePrefix">Prefix page title with badge</span>
+                    </label>
+                  </div>
+                  <div class="badge-content-grid">
+                    <label class="field badge-text-field">
+                      <span data-i18n="badgeText">Badge Text</span>
+                      <input id="env-badge" type="text" data-i18n-placeholder="envBadgePlaceholder" />
+                    </label>
+                    <div class="badge-color-pair">
+                      <label class="field color-field">
+                        <span data-i18n="badgeColor">Badge Color</span>
+                        <div class="color-field__body">
+                          <div id="badge-color-swatches" class="color-swatches"></div>
+                          <input id="badge-color" type="color" />
+                        </div>
+                      </label>
+                      <label class="field color-field">
+                        <span data-i18n="badgeTextColor">Badge Text Color</span>
+                        <div class="color-field__body">
+                          <div id="badge-text-color-swatches" class="color-swatches"></div>
+                          <input id="badge-text-color" type="color" />
+                        </div>
+                      </label>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="badge-card">
+                  <div class="badge-card__head">
+                    <h3 data-i18n="badgeStyle">Badge Style</h3>
+                  </div>
+                  <div class="badge-style-options" id="badge-style" role="radiogroup" data-i18n-title="badgeStyle">
+                    <label class="radio-card">
+                      <input type="radio" name="badge-style" value="slanted" />
+                      <span class="radio-card__indicator" aria-hidden="true"></span>
+                      <span class="radio-card__body">
+                        <span class="radio-card__title" data-i18n="badgeStyleSlanted">Corner Ribbon</span>
+                        <span class="radio-card__preview radio-card__preview--slanted" data-preview-label="EnvMark">EnvMark</span>
+                      </span>
+                    </label>
+                    <label class="radio-card">
+                      <input type="radio" name="badge-style" value="pill" />
+                      <span class="radio-card__indicator" aria-hidden="true"></span>
+                      <span class="radio-card__body">
+                        <span class="radio-card__title" data-i18n="badgeStylePill">Pill</span>
+                        <span class="radio-card__preview radio-card__preview--pill" data-preview-label="EnvMark">EnvMark</span>
+                      </span>
+                    </label>
+                  </div>
+                </div>
+
+                <div class="badge-card">
+                  <div class="badge-card__head">
+                    <h3 data-i18n="badgePlacement">Position & Display</h3>
+                  </div>
+                  <div class="field-grid badge-controls-grid">
+                    <label class="field">
+                      <span data-i18n="badgePosition">Badge Position</span>
+                      <select id="badge-position">
+                        <option value="top-right" data-i18n="topRight">Top Right</option>
+                        <option value="top-left" data-i18n="topLeft">Top Left</option>
+                        <option value="bottom-right" data-i18n="bottomRight">Bottom Right</option>
+                        <option value="bottom-left" data-i18n="bottomLeft">Bottom Left</option>
+                      </select>
+                    </label>
+                    <label class="field">
+                      <span data-i18n="badgeScale">Badge Size</span>
+                      <input id="badge-scale" type="range" min="0.75" max="1.35" step="0.05" />
+                    </label>
+                    <label class="field">
+                      <span data-i18n="badgeSize">Badge Text Size</span>
+                      <input id="badge-size" type="range" min="12" max="24" step="1" />
+                    </label>
+                    <label class="field">
+                      <span data-i18n="badgeOpacity">Badge Opacity</span>
+                      <input id="badge-opacity" type="range" min="0.35" max="1" step="0.05" />
+                    </label>
+                  </div>
+                </div>
+              </div>
+              <div class="marker-preview">
+                <div class="marker-preview__head">
+                  <span data-i18n="badgePreview">Badge Preview</span>
+                </div>
+                <div id="badge-preview-surface" class="marker-preview__surface"></div>
+              </div>
+              </section>
+
+              <section id="section-watermark" class="form-section">
+              <div class="section-title section-title--with-toggle">
+                <div>
+                  <h2 data-i18n="watermarkConfig">Watermark Config</h2>
+                  <p class="section-title__hint" data-i18n="watermarkConfigHint">Control the repeated watermark shown on matched pages.</p>
+                </div>
+                <label class="toggle-control section-title__toggle">
+                  <input id="env-watermark-enabled" type="checkbox" />
+                  <span class="toggle-control__switch" aria-hidden="true"></span>
+                  <span data-i18n="watermarkEnabled">Enable watermark</span>
+                </label>
+              </div>
+              <div class="watermark-layout">
+                <div class="badge-card">
+                  <div class="badge-card__head">
+                    <h3 data-i18n="watermarkContent">Content & Color</h3>
+                  </div>
+                  <div class="watermark-content-grid">
+                    <label class="field">
+                      <span data-i18n="watermarkText">Watermark Text</span>
+                      <input id="env-watermark-text" type="text" />
+                    </label>
+                    <label class="field color-field">
+                      <span data-i18n="watermarkColor">Watermark Color</span>
+                      <div class="color-field__body">
+                        <div id="watermark-color-swatches" class="color-swatches"></div>
+                        <input id="watermark-color" type="color" />
+                      </div>
+                    </label>
+                  </div>
+                </div>
+
+                <div class="badge-card">
+                  <div class="badge-card__head">
+                    <h3 data-i18n="watermarkAppearance">Display</h3>
+                  </div>
+                  <div class="field-grid watermark-controls-grid">
+                    <label class="field">
+                      <span data-i18n="watermarkOpacity">Watermark Opacity</span>
+                      <input id="watermark-opacity" type="range" min="0.02" max="0.2" step="0.01" />
+                    </label>
+                    <label class="field">
+                      <span data-i18n="watermarkAngle">Watermark Angle</span>
+                      <input id="watermark-angle" type="range" min="-45" max="0" step="1" />
+                    </label>
+                    <label class="field">
+                      <span data-i18n="watermarkSize">Watermark Size</span>
+                      <input id="watermark-size" type="range" min="20" max="72" step="1" />
+                    </label>
+                    <label class="field">
+                      <span data-i18n="watermarkGap">Watermark Gap</span>
+                      <input id="watermark-gap" type="range" min="32" max="140" step="4" />
+                    </label>
+                  </div>
+                </div>
+              </div>
+              <div class="marker-preview">
+                <div class="marker-preview__head">
+                  <span data-i18n="watermarkPreview">Watermark Preview</span>
+                </div>
+                <div id="watermark-preview-surface" class="marker-preview__surface"></div>
+              </div>
+              </section>
+
+              <section id="section-capture" class="form-section">
+              <div class="section-title">
+                <h2 data-i18n="captureSettings">Account Panel</h2>
+              </div>
+              <div id="env-capture-editor"></div>
+              </section>
+
+              <section id="section-accounts" class="form-section">
+              <div class="section-title">
+                <div>
+                  <h2 data-i18n="testAccounts">Test Accounts</h2>
+                  <p class="section-title__hint" data-i18n="testAccountsHint">Manage test accounts used for quick autofill on matched pages.</p>
+                </div>
+                <button id="add-account" class="small-button" type="button" data-i18n="addAccount">Add Account</button>
+              </div>
+              <div id="accounts-validation" class="validation-error" hidden></div>
+              <div id="accounts-list" class="stack-list"></div>
+              </section>
+            </form>
+            <aside id="workspace-toolbox" class="workspace-toolbox">
+              <section class="workspace-toolbox__card">
+                <div class="workspace-toolbox__title" data-i18n="quickNav">Quick Navigation</div>
+                <div class="workspace-toolbox__nav">
+                  <button type="button" class="workspace-toolbox__nav-button" data-scroll-target="section-basic" data-i18n="basic">Basic</button>
+                  <button type="button" class="workspace-toolbox__nav-button" data-scroll-target="section-rules" data-i18n="urlRules">URL Rules</button>
+                  <button type="button" class="workspace-toolbox__nav-button" data-scroll-target="section-badge" data-i18n="badgeConfig">Badge Config</button>
+                  <button type="button" class="workspace-toolbox__nav-button" data-scroll-target="section-watermark" data-i18n="watermarkConfig">Watermark Config</button>
+                  <button type="button" class="workspace-toolbox__nav-button" data-scroll-target="section-capture" data-i18n="captureSettings">Account Panel</button>
+                  <button type="button" class="workspace-toolbox__nav-button" data-scroll-target="section-accounts" data-i18n="testAccounts">Test Accounts</button>
+                </div>
+              </section>
+
+              <section class="workspace-toolbox__card">
+                <div class="workspace-toolbox__title" data-i18n="workspaceActions">Environment Actions</div>
+                <div class="workspace-toolbox__actions">
+                  <button id="save-config" class="primary workspace-toolbox__action-button" type="button" data-i18n="save">Save</button>
+                  <label class="workspace-toolbox__toggle-row toggle-control" data-i18n-title="environmentEnabled">
+                    <input id="env-enabled" type="checkbox" />
+                    <span class="toggle-control__switch" aria-hidden="true"></span>
+                    <span id="env-enabled-label" data-i18n="environmentEnabledOn">Environment enabled</span>
+                  </label>
+                  <button id="delete-environment" class="danger-button workspace-toolbox__action-button" type="button" data-i18n="deleteEnvironment">Delete Environment</button>
+                </div>
+              </section>
+            </aside>
+          </div>
+        </section>
+      </section>
+
+      <div id="selection-modal-backdrop" class="modal-backdrop" hidden></div>
+
+      <section id="export-modal" class="selection-modal" hidden aria-labelledby="export-modal-title">
+        <div class="selection-modal__card">
+          <div class="selection-modal__head">
+            <div>
+              <h2 id="export-modal-title" data-i18n="exportDialogTitle">Export Selected Data</h2>
+              <p class="selection-modal__hint" data-i18n="exportDialogHint">Choose groups to export. Expand a group if you want to select environments individually.</p>
+            </div>
+            <button id="export-modal-close" class="group-icon-button" type="button" aria-label="Close">x</button>
+          </div>
+          <div id="export-selection-list" class="selection-tree"></div>
+          <div class="selection-modal__footer">
+            <button id="export-modal-cancel" type="button" data-i18n="cancel">Cancel</button>
+            <button id="export-modal-confirm" class="primary" type="button" data-i18n="exportSelected">Export Selected</button>
+          </div>
+        </div>
+      </section>
+
+      <section id="import-modal" class="selection-modal" hidden aria-labelledby="import-modal-title">
+        <div class="selection-modal__card">
+          <div class="selection-modal__head">
+            <div>
+              <h2 id="import-modal-title" data-i18n="importDialogTitle">Import Data</h2>
+              <p class="selection-modal__hint" data-i18n="importDialogHint">Choose a file or drag it here, then select which groups and environments to import.</p>
+            </div>
+            <button id="import-modal-close" class="group-icon-button" type="button" aria-label="Close">x</button>
+          </div>
+
+          <button id="import-dropzone" class="import-dropzone" type="button">
+            <span class="import-dropzone__title" data-i18n="importDropzoneTitle">Choose File or Drop Here</span>
+            <span id="import-dropzone-detail" class="import-dropzone__detail" data-i18n="importDropzoneHint">Only JSON files exported from EnvMark are supported.</span>
+          </button>
+
+          <div id="import-selection-list" class="selection-tree selection-tree--empty">
+            <div class="empty" data-i18n="importNoFile">Choose a file to preview importable groups and environments.</div>
+          </div>
+
+          <div class="selection-modal__footer">
+            <button id="import-modal-cancel" type="button" data-i18n="cancel">Cancel</button>
+            <button id="import-modal-confirm" class="primary" type="button" data-i18n="importSelected">Import Selected</button>
+          </div>
+        </div>
+      </section>
+
+      <section id="about-modal" class="selection-modal" hidden aria-labelledby="about-modal-title">
+        <div class="selection-modal__card selection-modal__card--about">
+          <div class="selection-modal__head">
+            <div class="about-modal__hero">
+              <img class="about-modal__logo" src="../assets/icons/icon-128-display.png" alt="EnvMark logo" />
+              <div>
+              <h2 id="about-modal-title" data-i18n="aboutDialogTitle">About EnvMark</h2>
+              </div>
+            </div>
+            <button id="about-modal-close" class="group-icon-button" type="button" aria-label="Close">x</button>
+          </div>
+
+          <div class="about-modal__content">
+            <section class="about-card">
+              <h3 data-i18n="aboutContactTitle">Contact</h3>
+              <p data-i18n="aboutContactBody">EnvMark is open source. The project lives on GitHub, and PRs are always welcome. If you run into any issues, feel free to email me directly.</p>
+              <dl class="about-list">
+                <div class="about-list__row">
+                  <dt data-i18n="aboutGithubLabel">GitHub</dt>
+                  <dd><span>Configure your repository URL</span></dd>
+                </div>
+                <div class="about-list__row">
+                  <dt data-i18n="aboutEmailLabel">Email</dt>
+                  <dd><span>Configure your support email</span></dd>
+                </div>
+              </dl>
+            </section>
+          </div>
+
+          <div class="selection-modal__footer">
+            <button id="about-modal-confirm" class="primary" type="button" data-i18n="close">Close</button>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <script src="../src/i18n.js"></script>
+    <script src="options.js"></script>
+  </body>
+</html>

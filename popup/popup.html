@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="en" data-i18n-title="extName">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>EnvMark</title>
+    <link rel="stylesheet" href="popup.css" />
+  </head>
+  <body>
+    <main class="popup">
+      <header class="header">
+        <div class="header__brand">
+          <img class="header__logo" src="../assets/icons/icon-48.png" alt="EnvMark logo" />
+          <div>
+            <h1 data-i18n="extName">EnvMark</h1>
+            <p id="current-url" data-i18n="loadingCurrentTab">Loading current tab...</p>
+          </div>
+        </div>
+        <button id="open-options" class="icon-button" type="button" title="Open settings" data-i18n-title="openSettings">⚙</button>
+      </header>
+
+      <section id="environment-card" class="environment-card">
+        <div class="environment-card__head">
+          <div class="environment-card__label" data-i18n="currentEnvironment">Current environment</div>
+          <label id="environment-toggle" class="toggle-control" title="Enable this environment" data-i18n-title="enableEnvironment">
+            <input id="environment-enabled" type="checkbox" />
+            <span class="toggle-control__switch" aria-hidden="true"></span>
+          </label>
+        </div>
+        <div id="environment-name" class="environment-card__name" data-i18n="checking">Checking...</div>
+        <div id="environment-meta" class="environment-card__meta"></div>
+        <button id="quick-add-environment" class="quick-action-button environment-card__action" type="button" hidden data-i18n="quickAddCurrentPage">
+          Add Current Site
+        </button>
+      </section>
+
+      <section id="accounts-section" class="section">
+        <div class="section__head">
+          <h2 data-i18n="testAccounts">Test Accounts</h2>
+        </div>
+        <div id="accounts" class="account-list"></div>
+      </section>
+
+      <section id="favorites-section" class="section" hidden>
+        <div class="section__head">
+          <h2 data-i18n="quickAccess">Quick Access</h2>
+        </div>
+        <div id="favorites" class="favorites-list"></div>
+        <button id="favorites-more" class="link-button favorites-more" type="button" hidden data-i18n="showMoreGroups">
+          Show More Groups
+        </button>
+      </section>
+    </main>
+    <script src="../src/i18n.js"></script>
+    <script src="popup.js"></script>
+  </body>
+</html>
