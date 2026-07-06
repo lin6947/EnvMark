@@ -667,6 +667,18 @@ button:hover,
   margin-top: 12px;
 }
 
+.environment-search {
+  display: grid;
+  gap: 6px;
+  margin-top: 12px;
+}
+
+.environment-search span {
+  color: #334155;
+  font-size: 12px;
+  font-weight: 700;
+}
+
 .environment-group {
   display: grid;
   gap: 8px;
@@ -677,14 +689,20 @@ button:hover,
 }
 
 .environment-group__title {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
+  display: grid;
   gap: 8px;
   color: #475569;
   font-size: 12px;
   font-weight: 800;
   padding: 0 2px;
+}
+
+.environment-group__top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  min-width: 0;
   cursor: pointer;
 }
 
@@ -704,9 +722,21 @@ button:hover,
   gap: 10px;
 }
 
+.environment-group__collapsed {
+  border: 1px dashed #dbe4f0;
+  border-radius: 7px;
+  background: #f8fafc;
+  color: #64748b;
+  font-size: 12px;
+  padding: 8px 10px;
+}
+
 .environment-group__name {
   min-width: 0;
   overflow-wrap: anywhere;
+  color: #334155;
+  font-size: 13px;
+  line-height: 1.25;
 }
 
 .environment-group__title-main {
@@ -714,14 +744,49 @@ button:hover,
   align-items: center;
   gap: 6px;
   min-width: 0;
+  flex: 1 1 auto;
+}
+
+.environment-group__collapse {
+  width: 22px;
+  height: 22px;
+  flex: 0 0 22px;
+  font-size: 16px;
+  line-height: 1;
+  transform: rotate(90deg);
+  transition: transform 140ms ease;
+}
+
+.environment-group.is-collapsed .environment-group__collapse {
+  transform: rotate(0deg);
+}
+
+.environment-group__count {
+  flex: 0 0 auto;
+  border-radius: 999px;
+  background: #f1f5f9;
+  color: #64748b;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 1px 6px;
 }
 
 .environment-group__actions,
+.environment-group__tools,
 .panel__actions {
   display: inline-flex;
   align-items: center;
   gap: 6px;
   flex-wrap: wrap;
+}
+
+.environment-group__tools {
+  flex: 0 0 auto;
+}
+
+.environment-group__actions {
+  justify-content: flex-start;
+  padding-left: 30px;
 }
 
 .group-action {
@@ -1637,7 +1702,7 @@ textarea:focus {
 
 .row-card {
   display: grid;
-  grid-template-columns: 140px 1fr auto;
+  grid-template-columns: 140px 1fr auto auto;
   gap: 8px;
   align-items: center;
   border: 1px solid var(--border);
@@ -1745,6 +1810,12 @@ textarea:focus {
   color: #dc2626;
   border-color: #fecaca;
   background: #fff5f5;
+}
+
+.remove-button--copy:hover {
+  color: #2563eb;
+  border-color: #bfdbfe;
+  background: #eff6ff;
 }
 
 .row-check {

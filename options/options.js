@@ -108,6 +108,7 @@ const nodes = {
   aboutTrigger: document.querySelector("#about-trigger"),
   importConfig: document.querySelector("#import-config"),
   localeSwitcher: document.querySelector("#locale-switcher"),
+  environmentSearch: document.querySelector("#environment-search"),
   loadSample: document.querySelector("#load-sample"),
   addRule: document.querySelector("#add-rule"),
   addAccount: document.querySelector("#add-account"),
@@ -179,6 +180,8 @@ let scrollTargetLockId = "";
 let scrollSettleTimer = 0;
 let draggingAccountId = "";
 let draggingEnvironmentId = "";
+let environmentSearchQuery = "";
+let collapsedGroupIds = new Set();
 let expandedCustomFieldsAccountId = "";
 let autofocusCustomFieldId = "";
 let exportSelectionState = null;
@@ -817,6 +820,25 @@ function findEnvironmentByPrefixRule(prefixValue) {
   return settings.environments.find((environment) =>
     (environment.rules || []).some((rule) => rule.type === "prefix" && rule.value === prefixValue)
   ) || null;
+}
+
+function environmentSearchText(environment, group) {
+  return [
+    group?.name,
+    environment.name,
+    environment.badge,
+    environment.watermarkText,
+    environment.homepageUrl,
+    ...(environment.rules || []).map((rule) => `${rule.type || "wildcard"} ${rule.value || ""}`)
+  ]
+    .filter(Boolean)
+    .join(" ")
+    .toLowerCase();
+}
+
+function environmentMatchesSearch(environment, group, query) {
+  if (!query) return true;
+  return environmentSearchText(environment, group).includes(query);
 }
 
 function accountHasInput(account) {
@@ -1615,6 +1637,8 @@ function syncColorControls(environment = selectedEnvironment()) {
 
 function renderEnvironmentList() {
   nodes.list.innerHTML = "";
+  const searchQuery = environmentSearchQuery.trim().toLowerCase();
+  let renderedGroups = 0;
 
   if (!settings.groups.length) {
     const empty = document.createElement("div");
@@ -1625,9 +1649,17 @@ function renderEnvironmentList() {
   }
 
   settings.groups.forEach((group) => {
+    const allGroupEnvironments = settings.environments.filter((environment) => environment.groupId === group.id);
+    const groupEnvironments = allGroupEnvironments.filter((environment) => environmentMatchesSearch(environment, group, searchQuery));
+    const isCollapsed = !searchQuery && collapsedGroupIds.has(group.id);
+
+    if (searchQuery && !groupEnvironments.length) return;
+    renderedGroups += 1;
+
     const wrap = document.createElement("section");
     wrap.className = "environment-group";
     wrap.classList.toggle("is-active", group.id === selectedGroupId);
+    wrap.classList.toggle("is-collapsed", isCollapsed);
     wrap.dataset.groupId = group.id;
 
     const header = document.createElement("div");
@@ -1641,10 +1673,37 @@ function renderEnvironmentList() {
 
     const titleWrap = document.createElement("div");
     titleWrap.className = "environment-group__title-main";
+
+    const collapse = document.createElement("button");
+    collapse.type = "button";
+    collapse.className = "group-icon-button environment-group__collapse";
+    collapse.title = isCollapsed ? t("expandGroup") : t("collapseGroup");
+    collapse.setAttribute("aria-label", collapse.title);
+    collapse.setAttribute("aria-expanded", String(!isCollapsed));
+    collapse.textContent = "›";
+    collapse.addEventListener("click", (event) => {
+      event.stopPropagation();
+      if (isCollapsed) {
+        collapsedGroupIds.delete(group.id);
+      } else {
+        collapsedGroupIds.add(group.id);
+      }
+      renderEnvironmentList();
+    });
+    titleWrap.append(collapse);
+
     const title = document.createElement("span");
     title.className = "environment-group__name";
     title.textContent = group.name;
     titleWrap.append(title);
+
+    const count = document.createElement("span");
+    count.className = "environment-group__count";
+    count.textContent = `${groupEnvironments.length}/${allGroupEnvironments.length}`;
+    titleWrap.append(count);
+
+    const tools = document.createElement("div");
+    tools.className = "environment-group__tools";
 
     const actions = document.createElement("div");
     actions.className = "environment-group__actions";
@@ -1653,14 +1712,14 @@ function renderEnvironmentList() {
       event.stopPropagation();
       renameGroup(group.id);
     });
-    titleWrap.append(rename);
+    tools.append(rename);
 
     if (group.id !== DEFAULT_GROUP_ID) {
       const remove = createGroupIconButton("trash", "group-icon-button group-icon-button--danger", t("deleteGroup"), (event) => {
         event.stopPropagation();
         deleteGroup(group.id);
       });
-      titleWrap.append(remove);
+      tools.append(remove);
     }
 
     const addEnvironmentButton = document.createElement("button");
@@ -1692,13 +1751,37 @@ function renderEnvironmentList() {
     });
     actions.append(duplicate);
 
-    header.append(titleWrap, actions);
+    const enableGroup = document.createElement("button");
+    enableGroup.type = "button";
+    enableGroup.className = "group-action";
+    enableGroup.textContent = t("enableGroup");
+    enableGroup.disabled = !allGroupEnvironments.length || allGroupEnvironments.every((environment) => environment.enabled !== false);
+    enableGroup.addEventListener("click", (event) => {
+      event.stopPropagation();
+      setGroupEnvironmentsEnabled(group.id, true).catch(() => {});
+    });
+    actions.append(enableGroup);
+
+    const disableGroup = document.createElement("button");
+    disableGroup.type = "button";
+    disableGroup.className = "group-action group-action--danger";
+    disableGroup.textContent = t("disableGroup");
+    disableGroup.disabled = !allGroupEnvironments.length || allGroupEnvironments.every((environment) => environment.enabled === false);
+    disableGroup.addEventListener("click", (event) => {
+      event.stopPropagation();
+      setGroupEnvironmentsEnabled(group.id, false).catch(() => {});
+    });
+    actions.append(disableGroup);
+
+    const headerTop = document.createElement("div");
+    headerTop.className = "environment-group__top";
+    headerTop.append(titleWrap, tools);
+
+    header.append(headerTop, actions);
     wrap.append(header);
 
     const stack = document.createElement("div");
     stack.className = "environment-group__list";
-
-    const groupEnvironments = settings.environments.filter((environment) => environment.groupId === group.id);
 
     const persistEnvironmentMove = async (movedEnvironmentId) => {
       draggingEnvironmentId = "";
@@ -1771,6 +1854,7 @@ function renderEnvironmentList() {
     };
 
     wrap.addEventListener("dragover", (event) => {
+      if (isCollapsed || searchQuery) return;
       if (!draggingEnvironmentId) return;
       const draggedEnvironment = settings.environments.find((environment) => environment.id === draggingEnvironmentId);
       if (!draggedEnvironment) return;
@@ -1793,13 +1877,20 @@ function renderEnvironmentList() {
       wrap.classList.remove("is-drop-target");
     });
 
-    wrap.addEventListener("drop", acceptEnvironmentDrop);
-    stack.addEventListener("drop", acceptEnvironmentDrop);
+    if (!isCollapsed && !searchQuery) {
+      wrap.addEventListener("drop", acceptEnvironmentDrop);
+      stack.addEventListener("drop", acceptEnvironmentDrop);
+    }
 
-    if (!groupEnvironments.length) {
+    if (isCollapsed) {
+      const collapsed = document.createElement("div");
+      collapsed.className = "environment-group__collapsed";
+      collapsed.textContent = t("collapsedGroupSummary", [String(allGroupEnvironments.length)]);
+      stack.append(collapsed);
+    } else if (!groupEnvironments.length) {
       const empty = document.createElement("div");
       empty.className = "empty empty--compact";
-      empty.textContent = t("emptyGroup");
+      empty.textContent = searchQuery ? t("noSearchResults") : t("emptyGroup");
       stack.append(empty);
     } else {
       groupEnvironments.forEach((environment) => {
@@ -1807,7 +1898,7 @@ function renderEnvironmentList() {
         button.type = "button";
         button.className = "environment-item";
         button.dataset.environmentId = environment.id;
-        button.draggable = true;
+        button.draggable = !searchQuery;
         button.classList.toggle("is-active", environment.id === selectedId);
         button.classList.toggle("is-disabled", environment.enabled === false);
         button.style.setProperty("--item-color", environment.badgeColor || "#2563eb");
@@ -1877,6 +1968,13 @@ function renderEnvironmentList() {
     wrap.append(stack);
     nodes.list.append(wrap);
   });
+
+  if (!renderedGroups) {
+    const empty = document.createElement("div");
+    empty.className = "empty";
+    empty.textContent = t("noSearchResults");
+    nodes.list.append(empty);
+  }
 }
 
 function createRuleRow(rule, index) {
@@ -1903,6 +2001,12 @@ function createRuleRow(rule, index) {
   remove.title = t("removeRule");
   remove.append(createLucideIcon("x", "remove-button__icon"));
 
+  const copy = document.createElement("button");
+  copy.type = "button";
+  copy.className = "remove-button remove-button--copy";
+  copy.title = t("copyRule");
+  copy.append(createLucideIcon("copy", "remove-button__icon"));
+
   type.addEventListener("change", () => {
     const environment = selectedEnvironment();
     environment.rules[index].type = type.value;
@@ -1916,6 +2020,14 @@ function createRuleRow(rule, index) {
     markChanged();
   });
 
+  copy.addEventListener("click", () => {
+    const environment = selectedEnvironment();
+    const source = environment.rules[index] || { type: "wildcard", value: "" };
+    environment.rules.splice(index + 1, 0, { type: source.type || "wildcard", value: source.value || "" });
+    render();
+    markChanged();
+  });
+
   remove.addEventListener("click", () => {
     const environment = selectedEnvironment();
     environment.rules.splice(index, 1);
@@ -1923,7 +2035,7 @@ function createRuleRow(rule, index) {
     markChanged();
   });
 
-  row.append(type, value, remove);
+  row.append(type, value, copy, remove);
   return row;
 }
 
@@ -2690,6 +2802,15 @@ async function setSelectedEnvironmentEnabled(enabled) {
   setStatus(t("saved"));
 }
 
+async function setGroupEnvironmentsEnabled(groupId, enabled) {
+  settings.environments = settings.environments.map((environment) =>
+    environment.groupId === groupId ? { ...environment, enabled } : environment
+  );
+  await persistSettingsSnapshot();
+  render();
+  setStatus(t("saved"));
+}
+
 function addGroup() {
   const value = window.prompt(t("promptGroupName"), "");
   if (value === null) return;
@@ -3030,6 +3151,11 @@ bindNodeEvent(nodes.addRule, "click", () => {
   environment.rules.push({ type: "wildcard", value: "" });
   render();
   markChanged();
+});
+
+bindNodeEvent(nodes.environmentSearch, "input", () => {
+  environmentSearchQuery = nodes.environmentSearch.value || "";
+  renderEnvironmentList();
 });
 
 bindNodeEvent(nodes.addAccount, "click", () => {

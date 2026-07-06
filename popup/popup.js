@@ -15,6 +15,7 @@ const accountsNode = document.querySelector("#accounts");
 const openOptionsButton = document.querySelector("#open-options");
 const quickAddEnvironmentNode = document.querySelector("#quick-add-environment");
 const t = window.envmarkI18n.t;
+const { findEnvironment } = window.EnvMarkMatcher;
 const DEFAULT_VISIBLE_ACCOUNTS = 3;
 const DEFAULT_VISIBLE_FAVORITE_GROUPS = 3;
 const LUCIDE_ICON_ATTRS = {
@@ -57,51 +58,6 @@ function decoratePopupButtons() {
       ["circle", { cx: "12", cy: "12", r: "3" }]
     ])
   );
-}
-
-function wildcardToRegExp(pattern) {
-  const escaped = pattern.replace(/[.+?^${}()|[\]\\]/g, "\\$&").replace(/\*/g, ".*");
-  return new RegExp(`^${escaped}$`);
-}
-
-function matchesRule(url, rule) {
-  if (!rule || !rule.value) return false;
-  try {
-    if (rule.type === "prefix") return url.startsWith(rule.value);
-    if (rule.type === "regex") return new RegExp(rule.value).test(url);
-    return wildcardToRegExp(rule.value).test(url);
-  } catch (_) {
-    return false;
-  }
-}
-
-function ruleSpecificity(rule) {
-  if (!rule?.value) return -1;
-  if (rule.type === "prefix") return 3000 + rule.value.length;
-  if (rule.type === "wildcard") return 2000 + rule.value.replace(/\*/g, "").length;
-  if (rule.type === "regex") return 1000 + rule.value.length;
-  return rule.value.length;
-}
-
-function findEnvironment(config, url, includeDisabled = false) {
-  let matchedEnvironment = null;
-  let highestSpecificity = -1;
-
-  (config.environments || []).forEach((environment) => {
-    if (!includeDisabled && environment.enabled === false) return;
-    const environmentSpecificity = Math.max(
-      ...((environment.rules || [])
-        .filter((rule) => matchesRule(url, rule))
-        .map((rule) => ruleSpecificity(rule))),
-      -1
-    );
-    if (environmentSpecificity > highestSpecificity) {
-      matchedEnvironment = environment;
-      highestSpecificity = environmentSpecificity;
-    }
-  });
-
-  return matchedEnvironment;
 }
 
 function findGroupName(config, environment) {

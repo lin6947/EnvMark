@@ -44,6 +44,10 @@
               <button id="add-group" class="small-button" type="button" data-i18n="addGroup">Add Group</button>
             </div>
           </div>
+          <label class="environment-search">
+            <span data-i18n="environmentSearch">Search environments</span>
+            <input id="environment-search" type="search" data-i18n-placeholder="environmentSearchPlaceholder" placeholder="Name, URL, badge, rule" />
+          </label>
           <div id="environment-list" class="environment-list"></div>
         </aside>
 
@@ -383,6 +387,7 @@
     </main>
 
     <script src="../src/i18n.js"></script>
+    <script src="../src/matcher.js"></script>
     <script src="options.js"></script>
   </body>
 </html>

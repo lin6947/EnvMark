@@ -1,5 +1,8 @@
+importScripts("matcher.js");
+
 const STORAGE_KEY = "envmarkSettings";
 const DEFAULT_GROUP_ID = "default";
+const { findEnvironment } = self.EnvMarkMatcher;
 
 const DEFAULT_SETTINGS = {
   groups: [{ id: DEFAULT_GROUP_ID, name: "Default Group" }],
@@ -110,51 +113,6 @@ chrome.storage.onChanged.addListener((changes, areaName) => {
     refreshAllTabIcons().catch(() => {});
   }
 });
-
-function wildcardToRegExp(pattern) {
-  const escaped = pattern.replace(/[.+?^${}()|[\]\\]/g, "\\$&").replace(/\*/g, ".*");
-  return new RegExp(`^${escaped}$`);
-}
-
-function matchesRule(url, rule) {
-  if (!rule || !rule.value) return false;
-  try {
-    if (rule.type === "prefix") return url.startsWith(rule.value);
-    if (rule.type === "regex") return new RegExp(rule.value).test(url);
-    return wildcardToRegExp(rule.value).test(url);
-  } catch (_) {
-    return false;
-  }
-}
-
-function ruleSpecificity(rule) {
-  if (!rule?.value) return -1;
-  if (rule.type === "prefix") return 3000 + rule.value.length;
-  if (rule.type === "wildcard") return 2000 + rule.value.replace(/\*/g, "").length;
-  if (rule.type === "regex") return 1000 + rule.value.length;
-  return rule.value.length;
-}
-
-function findEnvironment(settings, url) {
-  let matchedEnvironment = null;
-  let highestSpecificity = -1;
-
-  (settings.environments || []).forEach((environment) => {
-    if (environment.enabled === false) return;
-    const environmentSpecificity = Math.max(
-      ...((environment.rules || [])
-        .filter((rule) => matchesRule(url, rule))
-        .map((rule) => ruleSpecificity(rule))),
-      -1
-    );
-    if (environmentSpecificity > highestSpecificity) {
-      matchedEnvironment = environment;
-      highestSpecificity = environmentSpecificity;
-    }
-  });
-
-  return matchedEnvironment;
-}
 
 function drawIcon(size, colors) {
   const canvas = new OffscreenCanvas(size, size);

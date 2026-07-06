@@ -5,76 +5,130 @@
 <h1 align="center">EnvMark</h1>
 
 <p align="center">
-  A Chrome extension for marking development, test, staging, and production environments.
+  A Manifest V3 Chrome extension for making dev, test, staging, and production environments instantly recognizable.
 </p>
 
 <p align="center">
-  EnvMark makes the active environment obvious, keeps QA accounts close at hand, and helps reduce mistakes caused by visually similar systems.
+  EnvMark adds visible page markers, keeps test accounts nearby, and reduces mistakes in systems that look almost identical across environments.
 </p>
 
-## Highlights
+## What It Does
 
-- Detect environments by URL rules.
-- Show a badge, watermark, or both on matched pages.
-- Optionally prefix the page title with the environment label.
-- Manage grouped environments from a dedicated options page.
-- Store multiple test accounts per environment and fill them on demand.
-- Capture account values from login pages into the current environment.
-- Show the matched environment directly in the extension popup.
-- Add an environment homepage URL so the popup can jump straight to grouped environment entries.
+- Detects environments with URL rules.
+- Shows a floating badge, repeated watermark, or both on matched pages.
+- Optionally prefixes the browser tab title with the environment label.
+- Shows the current matched environment in the extension popup.
+- Provides Quick Access links for environment homepages, grouped by product or team.
+- Stores multiple test accounts per environment for one-click filling.
+- Captures login-page values into the current environment as a new account.
+- Supports custom account fields for extra login inputs such as tenant, merchant, or company IDs.
+- Manages groups, environments, rules, marker styles, account panel settings, and accounts from the options page.
+- Imports and exports selected groups/environments as JSON.
+- Supports English and Simplified Chinese UI text.
 
 ## Why EnvMark
 
-Many internal systems look nearly identical across dev, test, staging, and production. EnvMark adds lightweight visual signals so you can tell where you are before you click, edit, fill, or submit anything important.
+Internal systems often share the same layout across dev, test, staging, and production. A small visual cue can prevent a very real mistake.
 
-## URL Rule Types
+EnvMark is built for teams that frequently switch between similar environments and need three things close at hand:
+
+- clear visual context before editing or submitting data
+- fast access to related environment homepages
+- safer, repeatable filling of shared QA or staging accounts
+
+## URL Rules
+
+Each environment can contain one or more rules. The most specific matching rule wins when multiple environments match the current page.
 
 - `wildcard`: supports `*`, for example `https://test.example.com/*`
 - `prefix`: matches URL prefixes, for example `https://pre.example.com/`
 - `regex`: uses JavaScript regular expressions
 
-## Marker Options
+Keep rules as narrow as practical. For example, prefer a production host rule over a broad company-wide wildcard.
 
-- `badge`: floating environment badge only
-- `watermark`: watermark only
-- `badge-watermark`: badge and watermark together
+## Markers
 
-Badge settings support style, position, size, and opacity.
+Each environment can enable a badge, a watermark, or both.
 
-Watermark settings support text, opacity, angle, size, and spacing.
+Badge settings include:
 
-## Account Panel
+- text and colors
+- corner ribbon or pill style
+- position
+- scale, font size, and opacity
+- title prefix toggle
 
-Each environment can store multiple test accounts. Accounts can be reordered, marked as the default fill target, and filled from the popup when the current page matches that environment.
+Watermark settings include:
 
-EnvMark only fills fields after an explicit user action. It does not submit forms or trigger login buttons automatically.
+- text and color
+- opacity
+- angle
+- font size
+- spacing
+
+The options page includes live previews so marker changes can be checked before saving.
+
+## Test Accounts
+
+Each environment can store multiple accounts. Accounts can be reordered, marked as the default fill target, and filled from the popup or the in-page account panel.
+
+Account support includes:
+
+- username and password fields
+- optional account labels
+- default fill target
+- custom fields for extra login inputs
+- password visibility toggles in the options page
+- capture from matched login pages
+
+EnvMark fills input fields only. It does not submit forms or click login buttons.
+
+If an account is marked as the default fill target, EnvMark can fill it automatically on pages that look like login forms. This behavior is controlled by the account configuration and still never submits the form.
+
+## Options Page
+
+Use the options page to:
+
+- create, rename, delete, and reorder groups
+- add, clone, move, enable, or disable environments
+- search environments by name, URL, badge, or rule
+- collapse groups to keep large configurations readable
+- bulk-enable or bulk-disable environments within a group
+- configure URL rules
+- customize badge and watermark appearance
+- configure the in-page account panel
+- add, reorder, capture, and manage test accounts
+- import or export selected configuration subsets
+
+## Popup
+
+The popup shows the active tab's matched environment and provides quick actions:
+
+- enable or disable the matched environment
+- fill a configured test account
+- add the current site as a draft environment rule
+- open grouped Quick Access links for configured environment homepages
+
+## Import, Export, And Passwords
+
+Exports are JSON files and can include account values. Passwords and custom field values are lightly obfuscated in exported files so they are not plain text at a glance.
+
+This obfuscation is not strong encryption. Treat exported configuration files as sensitive team data and share them only through trusted channels.
 
 ## Install Locally
 
 1. Open `chrome://extensions`.
 2. Enable `Developer mode`.
 3. Click `Load unpacked`.
-4. Select the project folder.
+4. Select this project folder.
 
-## Configure Environments
+## Permissions
 
-Open the extension options page to:
+EnvMark uses:
 
-- create groups
-- add environments to a group
-- configure URL matching rules
-- customize badge and watermark appearance
-- configure the account panel
-- add and manage test accounts
-
-The most important part of each environment is its `URL Rules`, because those rules determine when EnvMark should activate on a page.
-
-## Typical Use Cases
-
-- Add a bright badge to production pages so they never look like test.
-- Prefix page titles to make environment differences visible in browser tabs.
-- Keep shared QA or staging accounts available without digging through notes.
-- Group environments by product or business line so large setups stay manageable.
+- `storage`: save environment and account configuration locally
+- `tabs`: read the active tab URL and open configured environment links
+- `<all_urls>` host access: detect configured environments and draw markers on matched pages
 
 ## Build Release Artifacts
 
