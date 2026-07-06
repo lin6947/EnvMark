@@ -104,10 +104,7 @@ EnvMark/
       // —— 兼容旧字段 ——
       "markerMode": "badge|watermark|badge-watermark",
       // —— 测试账号 ——
-      "accounts": [
-        { "id": "admin", "label": "Admin", "username": "admin",
-          "password": "admin123", "defaultFill": false }
-      ]
+      "accounts": []
     }
   ]
 }
@@ -131,7 +128,7 @@ EnvMark/
 
 - **职责**：根据当前标签页 URL 是否匹配某环境，**动态绘制工具栏图标颜色**（matched=蓝色 / unmatched=灰色），通过 `OffscreenCanvas` + `chrome.action.setIcon`。
 - **触发时机**：`onInstalled`、`onStartup`、`tabs.onActivated`、`tabs.onUpdated`、`windows.onFocusChanged`、`storage.onChanged`。
-- **初始化**：首次安装时写入 `DEFAULT_SETTINGS`（包含 Local Dev、Test 两个示例环境）。
+- **初始化**：首次安装时写入 `DEFAULT_SETTINGS`（仅包含空的默认分组）。示例环境由用户在 Options 页主动点击 `Load Sample` 后写入。
 
 ### 3. Content Script（`content.js`）— 视觉标识核心
 
@@ -233,8 +230,8 @@ popup 和 options 共用：
 
 ## 九、典型使用流程
 
-1. 用户加载扩展 → 自动注入 Local Dev / Test 两个示例环境。
-2. 打开内部系统 → URL 命中规则 → 页面右上角出现彩色角标 + 标签页标题加前缀。
+1. 用户加载扩展 → 首次安装只创建空默认分组；可在 Options 页点击 `Load Sample` 加载示例环境。
+2. 用户添加环境规则后，打开内部系统 → URL 命中规则 → 页面右上角出现彩色角标 + 标签页标题加前缀。
 3. 工具栏图标变蓝，弹窗显示当前环境。
 4. 若该环境配置了 `defaultFill` 账号且页面是登录表单 → 自动填充并 toast 提示。
 5. 用户在弹窗中点击其他账号 → 切换填充内容（仍不提交）。
