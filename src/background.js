@@ -6,74 +6,7 @@ const { findEnvironment } = self.EnvMarkMatcher;
 
 const DEFAULT_SETTINGS = {
   groups: [{ id: DEFAULT_GROUP_ID, name: "Default Group" }],
-  environments: [
-    {
-      id: "local",
-      groupId: DEFAULT_GROUP_ID,
-      name: "Local Dev",
-      homepageUrl: "http://localhost/",
-      lastQuickAccessAt: 0,
-      enabled: true,
-      badge: "LOCAL",
-      badgeEnabled: true,
-      badgeColor: "#2563eb",
-      badgeTextColor: "#ffffff",
-      badgeStyle: "slanted",
-      badgePosition: "top-right",
-      badgeScale: 1,
-      badgeSize: 14,
-      badgeOffset: 12,
-      badgeOpacity: 1,
-      watermarkText: "Local Dev",
-      watermarkEnabled: false,
-      watermarkColor: "#2563eb",
-      watermarkOpacity: 0.08,
-      watermarkAngle: -24,
-      watermarkSize: 42,
-      watermarkGap: 80,
-      titlePrefix: true,
-      markerMode: "badge",
-      rules: [{ type: "wildcard", value: "http://localhost:*/*" }],
-      accounts: [
-        {
-          id: "admin",
-          label: "Admin",
-          username: "admin",
-          password: "admin123",
-          defaultFill: false
-        }
-      ]
-    },
-    {
-      id: "test",
-      groupId: DEFAULT_GROUP_ID,
-      name: "Test Environment",
-      homepageUrl: "https://test.example.com/",
-      lastQuickAccessAt: 0,
-      enabled: true,
-      badge: "TEST",
-      badgeEnabled: true,
-      badgeColor: "#059669",
-      badgeTextColor: "#ffffff",
-      badgeStyle: "slanted",
-      badgePosition: "top-right",
-      badgeScale: 1,
-      badgeSize: 14,
-      badgeOffset: 12,
-      badgeOpacity: 1,
-      watermarkText: "Test Environment",
-      watermarkEnabled: true,
-      watermarkColor: "#059669",
-      watermarkOpacity: 0.08,
-      watermarkAngle: -24,
-      watermarkSize: 42,
-      watermarkGap: 80,
-      titlePrefix: true,
-      markerMode: "badge-watermark",
-      rules: [{ type: "wildcard", value: "https://test.example.com/*" }],
-      accounts: []
-    }
-  ]
+  environments: []
 };
 
 const ICON_SIZES = [16, 32];
