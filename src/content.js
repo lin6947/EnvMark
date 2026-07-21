@@ -424,6 +424,114 @@
     if (body) body.setAttribute("hidden", "");
   }
 
+  function expandNavigatorPanel(panel, env, settings) {
+    panel.dataset.expanded = "true";
+    syncNavigatorBody(panel, env, settings);
+  }
+
+  function syncNavigatorBody(panel, env, settings) {
+    const body = panel.querySelector(".envmate-nav-panel__body");
+    if (!body) return;
+    body.innerHTML = "";
+
+    if (panel.dataset.expanded !== "true") {
+      body.setAttribute("hidden", "");
+      return;
+    }
+    body.removeAttribute("hidden");
+
+    const groups = groupedEnvironmentsForNav(settings, env);
+    if (groups.length === 0) {
+      const empty = document.createElement("div");
+      empty.className = "envmate-nav-panel__empty";
+      empty.textContent = t("navPanelEmpty");
+      body.append(empty);
+      return;
+    }
+
+    const matchedEnvId = env && env.id;
+
+    groups.forEach(({ group, environments }) => {
+      const groupEl = document.createElement("div");
+      groupEl.className = "envmate-nav-panel__group";
+
+      const toggle = document.createElement("button");
+      toggle.type = "button";
+      toggle.className = "envmate-nav-panel__group-toggle";
+      const isExpanded = navigatorExpandedGroups.has(group.id);
+      toggle.dataset.expanded = isExpanded ? "true" : "false";
+      toggle.textContent = group.name;
+      toggle.addEventListener("click", () => {
+        if (navigatorExpandedGroups.has(group.id)) {
+          navigatorExpandedGroups.delete(group.id);
+        } else {
+          navigatorExpandedGroups.add(group.id);
+        }
+        syncNavigatorBody(panel, env, settings);
+      });
+      groupEl.append(toggle);
+
+      if (isExpanded) {
+        const list = document.createElement("div");
+        list.className = "envmate-nav-panel__group-list";
+        environments.forEach((envItem) => {
+          list.append(
+            createNavigatorEnvRow(envItem, envItem.id === matchedEnvId, panel, env, settings)
+          );
+        });
+        groupEl.append(list);
+      }
+
+      body.append(groupEl);
+    });
+  }
+
+  function createNavigatorEnvRow(envItem, isCurrent, panel, matchedEnv, settings) {
+    const row = document.createElement("button");
+    row.type = "button";
+    row.className = "envmate-nav-panel__env";
+    if (isCurrent) row.classList.add("envmate-nav-panel__env--current");
+
+    const head = document.createElement("span");
+    head.className = "envmate-nav-panel__env-head";
+
+    const name = document.createElement("span");
+    name.className = "envmate-nav-panel__env-name";
+    name.textContent = envItem.name || envItem.badge || envItem.homepageUrl;
+    head.append(name);
+
+    if (envItem.badge) {
+      const badge = document.createElement("span");
+      badge.className = "envmate-nav-panel__env-badge";
+      badge.textContent = envItem.badge;
+      badge.style.setProperty(
+        "--envmate-nav-env-badge-bg",
+        envItem.badgeColor || "#2563eb"
+      );
+      badge.style.setProperty(
+        "--envmate-nav-env-badge-fg",
+        envItem.badgeTextColor || "#ffffff"
+      );
+      head.append(badge);
+    }
+
+    row.append(head);
+
+    if (isCurrent) {
+      const tag = document.createElement("span");
+      tag.className = "envmate-nav-panel__env-current";
+      tag.textContent = t("navCurrentLabel");
+      row.append(tag);
+    }
+
+    // Click handling lands in Task 6; placeholder does nothing yet.
+    row.addEventListener("click", (event) => {
+      event.stopPropagation();
+    });
+
+    return row;
+  }
+
   function createNavigatorPanel(env, settings) {
     const groups = groupedEnvironmentsForNav(settings, env);
     if (groups.length === 0) return;
@@ -452,8 +560,7 @@
       if (panel.dataset.expanded === "true") {
         collapseNavigatorPanel(panel);
       } else {
-        // Body rendering lands in Task 5; for now just flip the flag.
-        panel.dataset.expanded = "true";
+        expandNavigatorPanel(panel, env, settings);
       }
     });
     panel.append(button);
