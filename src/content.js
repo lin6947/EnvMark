@@ -511,7 +511,7 @@
         list.className = "envmate-nav-panel__group-list";
         environments.forEach((envItem) => {
           list.append(
-            createNavigatorEnvRow(envItem, envItem.id === matchedEnvId, panel, env, settings)
+            createNavigatorEnvRow(envItem, envItem.id === matchedEnvId, panel)
           );
         });
         groupEl.append(list);
@@ -521,7 +521,7 @@
     });
   }
 
-  function createNavigatorEnvRow(envItem, isCurrent, panel, matchedEnv, settings) {
+  function createNavigatorEnvRow(envItem, isCurrent, panel) {
     const row = document.createElement("button");
     row.type = "button";
     row.className = "envmate-nav-panel__env";

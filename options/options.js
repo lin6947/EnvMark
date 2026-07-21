@@ -2651,7 +2651,7 @@ function createCaptureSettingsEditor(source, options = {}) {
 function createNavSettingsEditor(source, options = {}) {
   const onChange = options.onChange || (() => {});
   const container = document.createElement("div");
-  container.className = "capture-settings-editor";
+  container.className = "nav-settings-editor";
 
   const enabledWrap = document.createElement("label");
   enabledWrap.className = "toggle-control section-title__toggle capture-enabled-toggle";
