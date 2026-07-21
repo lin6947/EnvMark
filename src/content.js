@@ -413,6 +413,7 @@
   }
 
   function clearNavigatorPanel() {
+    detachNavigatorDismissHandlers();
     navigatorPanel = null;
     navigatorExpandedGroups = new Set();
   }
@@ -427,6 +428,40 @@
   function expandNavigatorPanel(panel, env, settings) {
     panel.dataset.expanded = "true";
     syncNavigatorBody(panel, env, settings);
+  }
+
+  function handleNavigatorEnvClick(envItem, panel) {
+    if (!isValidNavUrl(envItem && envItem.homepageUrl)) return;
+    window.open(envItem.homepageUrl, "_blank", "noopener");
+    collapseNavigatorPanel(panel);
+  }
+
+  function attachNavigatorDismissHandlers(panel) {
+    detachNavigatorDismissHandlers();
+    navigatorOutsideClickHandler = (event) => {
+      if (panel.dataset.expanded !== "true") return;
+      if (!panel.contains(event.target)) {
+        collapseNavigatorPanel(panel);
+      }
+    };
+    navigatorEscapeHandler = (event) => {
+      if (event.key === "Escape" && panel.dataset.expanded === "true") {
+        collapseNavigatorPanel(panel);
+      }
+    };
+    document.addEventListener("click", navigatorOutsideClickHandler, true);
+    document.addEventListener("keydown", navigatorEscapeHandler);
+  }
+
+  function detachNavigatorDismissHandlers() {
+    if (navigatorOutsideClickHandler) {
+      document.removeEventListener("click", navigatorOutsideClickHandler, true);
+      navigatorOutsideClickHandler = null;
+    }
+    if (navigatorEscapeHandler) {
+      document.removeEventListener("keydown", navigatorEscapeHandler);
+      navigatorEscapeHandler = null;
+    }
   }
 
   function syncNavigatorBody(panel, env, settings) {
@@ -524,9 +559,9 @@
       row.append(tag);
     }
 
-    // Click handling lands in Task 6; placeholder does nothing yet.
     row.addEventListener("click", (event) => {
       event.stopPropagation();
+      handleNavigatorEnvClick(envItem, panel);
     });
 
     return row;
@@ -574,6 +609,7 @@
     navigatorExpandedGroups = new Set();
     navigatorExpandedGroups.add(resolveGroupIdForNav(settings, env && env.groupId));
 
+    attachNavigatorDismissHandlers(panel);
     document.documentElement.append(panel);
     navigatorPanel = panel;
   }
