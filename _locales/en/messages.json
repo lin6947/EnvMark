@@ -284,5 +284,30 @@
   "middleLeft": { "message": "Middle Left" },
   "middleRight": { "message": "Middle Right" },
   "bottomCenter": { "message": "Bottom Center" },
-  "capturePosition": { "message": "Position" }
+  "capturePosition": { "message": "Position" },
+  "settingsTemplate": { "message": "Template" },
+  "settingsTemplates": { "message": "Setting Templates" },
+  "applyTemplate": { "message": "Apply Template" },
+  "saveAsTemplate": { "message": "Save Current as Template" },
+  "addTemplateGroup": { "message": "Add Template Group" },
+  "defaultTemplateGroup": { "message": "Default Templates" },
+  "promptTemplateGroupName": { "message": "Enter a template group name" },
+  "promptRenameTemplateGroup": { "message": "Enter a new template group name" },
+  "promptTemplateName": { "message": "Enter a template name" },
+  "renameTemplateGroup": { "message": "Rename template group" },
+  "deleteTemplateGroup": { "message": "Delete template group" },
+  "deleteTemplate": { "message": "Delete template" },
+  "templateGroupExists": { "message": "A template group with this name already exists." },
+  "confirmDeleteTemplateGroup": {
+    "message": "Delete template group \"$NAME$\" and all templates inside it?",
+    "placeholders": { "name": { "content": "$1" } }
+  },
+  "noTemplates": { "message": "No templates yet." },
+  "templateSaved": { "message": "Template saved." },
+  "templateApplied": { "message": "Template applied." },
+  "navButtonTitle": { "message": "Switch environment" },
+  "navPanelHeading": { "message": "Environments" },
+  "navPanelEmpty": { "message": "No environments to navigate" },
+  "navSettingsLabel": { "message": "Show environment navigator button" },
+  "navCurrentLabel": { "message": "Current" }
 }

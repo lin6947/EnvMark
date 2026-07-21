@@ -282,5 +282,30 @@
   "middleLeft": { "message": "左侧居中" },
   "middleRight": { "message": "右侧居中" },
   "bottomCenter": { "message": "底部居中" },
-  "capturePosition": { "message": "位置" }
+  "capturePosition": { "message": "位置" },
+  "settingsTemplate": { "message": "模板" },
+  "settingsTemplates": { "message": "设置模板" },
+  "applyTemplate": { "message": "应用模板" },
+  "saveAsTemplate": { "message": "保存当前为模板" },
+  "addTemplateGroup": { "message": "新增模板组" },
+  "defaultTemplateGroup": { "message": "默认模板" },
+  "promptTemplateGroupName": { "message": "输入模板组名称" },
+  "promptRenameTemplateGroup": { "message": "输入新的模板组名称" },
+  "promptTemplateName": { "message": "输入模板名称" },
+  "renameTemplateGroup": { "message": "重命名模板组" },
+  "deleteTemplateGroup": { "message": "删除模板组" },
+  "deleteTemplate": { "message": "删除模板" },
+  "templateGroupExists": { "message": "这个模板组名称已经存在。" },
+  "confirmDeleteTemplateGroup": {
+    "message": "确定删除模板组“$NAME$”及其中的所有模板吗？",
+    "placeholders": { "name": { "content": "$1" } }
+  },
+  "noTemplates": { "message": "还没有模板。" },
+  "templateSaved": { "message": "模板已保存。" },
+  "templateApplied": { "message": "模板已应用。" },
+  "navButtonTitle": { "message": "切换环境" },
+  "navPanelHeading": { "message": "环境" },
+  "navPanelEmpty": { "message": "没有可跳转的环境" },
+  "navSettingsLabel": { "message": "显示环境切换按钮" },
+  "navCurrentLabel": { "message": "当前" }
 }
