@@ -412,6 +412,65 @@
     }
   }
 
+  function clearNavigatorPanel() {
+    navigatorPanel = null;
+    navigatorExpandedGroups = new Set();
+  }
+
+  function collapseNavigatorPanel(panel) {
+    if (!panel) return;
+    panel.dataset.expanded = "false";
+    const body = panel.querySelector(".envmate-nav-panel__body");
+    if (body) body.setAttribute("hidden", "");
+  }
+
+  function createNavigatorPanel(env, settings) {
+    const groups = groupedEnvironmentsForNav(settings, env);
+    if (groups.length === 0) return;
+
+    document
+      .querySelectorAll('[data-envmate-root="navigator"]')
+      .forEach((node) => node.remove());
+
+    const panel = document.createElement("div");
+    panel.className = "envmate-nav-panel";
+    panel.dataset.envmateRoot = "navigator";
+
+    const bgColor = (env && env.badgeColor) || NAV_FALLBACK_BG;
+    const fgColor = (env && env.badgeTextColor) || NAV_FALLBACK_FG;
+    panel.style.setProperty("--envmate-nav-bg", bgColor);
+    panel.style.setProperty("--envmate-nav-fg", fgColor);
+
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = "envmate-nav-panel__button";
+    button.title = t("navButtonTitle");
+    button.setAttribute("aria-label", t("navButtonTitle"));
+    button.innerHTML = NAV_ICON_SVG;
+    button.addEventListener("click", (event) => {
+      event.stopPropagation();
+      if (panel.dataset.expanded === "true") {
+        collapseNavigatorPanel(panel);
+      } else {
+        // Body rendering lands in Task 5; for now just flip the flag.
+        panel.dataset.expanded = "true";
+      }
+    });
+    panel.append(button);
+
+    const body = document.createElement("div");
+    body.className = "envmate-nav-panel__body";
+    body.setAttribute("hidden", "");
+    panel.append(body);
+
+    panel.dataset.expanded = "false";
+    navigatorExpandedGroups = new Set();
+    navigatorExpandedGroups.add(resolveGroupIdForNav(settings, env && env.groupId));
+
+    document.documentElement.append(panel);
+    navigatorPanel = panel;
+  }
+
   function syncCapturePanelVisibility(environment = activeEnvironment) {
     capturePanelSyncTimer = null;
     if (!environment) {
@@ -502,6 +561,7 @@
   function applyMarkers(settings) {
     activeSettings = settings;
     clearCapturePanelSync();
+    clearNavigatorPanel();
     removeMarkers();
     clearAutoFill();
 
@@ -517,6 +577,9 @@
     if (shouldShowBadge(environment)) createBadge(environment, settings);
     startCapturePanelSync(environment);
     scheduleDefaultFill(environment);
+    if (shouldShowNavigator(environment)) {
+      createNavigatorPanel(environment, settings);
+    }
   }
 
   function refreshForCurrentUrl() {
