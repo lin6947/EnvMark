@@ -263,6 +263,13 @@
               <div id="env-capture-editor"></div>
               </section>
 
+              <section id="section-nav" class="form-section">
+              <div class="section-title">
+                <h2 data-i18n="navSettingsLabel">Environment Navigator</h2>
+              </div>
+              <div id="env-nav-editor"></div>
+              </section>
+
               <section id="section-accounts" class="form-section">
               <div class="section-title">
                 <div>
@@ -286,6 +293,15 @@
                   <button type="button" class="workspace-toolbox__nav-button" data-scroll-target="section-capture" data-i18n="captureSettings">Account Panel</button>
                   <button type="button" class="workspace-toolbox__nav-button" data-scroll-target="section-accounts" data-i18n="testAccounts">Test Accounts</button>
                 </div>
+              </section>
+
+              <section class="workspace-toolbox__card">
+                <div class="workspace-toolbox__title" data-i18n="settingsTemplates">Setting Templates</div>
+                <div class="template-actions">
+                  <button id="save-template-from-env" class="workspace-toolbox__action-button" type="button" data-i18n="saveAsTemplate">Save Current as Template</button>
+                  <button id="add-template-group" class="workspace-toolbox__action-button" type="button" data-i18n="addTemplateGroup">Add Template Group</button>
+                </div>
+                <div id="template-group-list" class="template-group-list"></div>
               </section>
 
               <section class="workspace-toolbox__card">

@@ -11,6 +11,7 @@ const DEFAULT_CAPTURE_SETTINGS = {
 };
 const DEFAULT_GROUP_ID = "default";
 const SAMPLE_GROUP_ID = "sample";
+const DEFAULT_TEMPLATE_GROUP_ID = "default-templates";
 const ENVIRONMENT_COLOR_PRESETS = ["#2563eb", "#059669", "#dc2626", "#7c3aed", "#ea580c", "#0f766e", "#db2777", "#4f46e5"];
 const TEXT_COLOR_PRESETS = ["#ffffff", "#f8fafc", "#e2e8f0", "#111827", "#0f172a", "#334155"];
 const EXPORTED_PASSWORD_SCHEME = "emsec";
@@ -93,7 +94,8 @@ const LUCIDE_ICON_NODES = {
 function createSampleSettings() {
   return {
     groups: [{ id: DEFAULT_GROUP_ID, name: t("defaultGroup") }],
-    environments: []
+    environments: [],
+    templateGroups: [{ id: DEFAULT_TEMPLATE_GROUP_ID, name: t("defaultTemplateGroup"), templates: [] }]
   };
 }
 
@@ -101,6 +103,8 @@ const nodes = {
   list: document.querySelector("#environment-list"),
   status: document.querySelector("#status"),
   addGroup: document.querySelector("#add-group"),
+  addTemplateGroup: document.querySelector("#add-template-group"),
+  saveTemplateFromEnv: document.querySelector("#save-template-from-env"),
   deleteEnvironment: document.querySelector("#delete-environment"),
   save: document.querySelector("#save-config"),
   exportConfig: document.querySelector("#export-config"),
@@ -164,7 +168,9 @@ const nodes = {
   aboutModalClose: document.querySelector("#about-modal-close"),
   aboutModalConfirm: document.querySelector("#about-modal-confirm"),
   aboutWechatSection: document.querySelector("#about-wechat-section"),
-  envCaptureEditor: document.querySelector("#env-capture-editor")
+  envCaptureEditor: document.querySelector("#env-capture-editor"),
+  envNavEditor: document.querySelector("#env-nav-editor"),
+  templateGroupList: document.querySelector("#template-group-list")
 };
 
 const t = window.envmarkI18n.t;
@@ -509,7 +515,8 @@ function buildSelectedSettings(sourceSettings, selectionState) {
 
   return {
     groups: nextGroups,
-    environments: nextEnvironments
+    environments: nextEnvironments,
+    templateGroups: clone(sourceSettings.templateGroups || [])
   };
 }
 
@@ -557,6 +564,27 @@ function mergeImportedSettings(currentSettings, importedSubset) {
     nextEnvironment.groupId = groupIdMap.get(environment.groupId) || DEFAULT_GROUP_ID;
     next.environments.push(nextEnvironment);
     if (nextEnvironment.id) existingEnvironmentIds.add(nextEnvironment.id);
+  });
+
+  (importedSubset.templateGroups || []).forEach((templateGroup) => {
+    const sameId = (next.templateGroups || []).find((item) => item.id === templateGroup.id);
+    const sameName = (next.templateGroups || []).find((item) => item.name === templateGroup.name);
+    const targetGroup = sameId || sameName;
+    if (targetGroup) {
+      const existingTemplateIds = new Set((targetGroup.templates || []).map((template) => template.id).filter(Boolean));
+      targetGroup.templates = targetGroup.templates || [];
+      (templateGroup.templates || []).forEach((template) => {
+        if (template.id && existingTemplateIds.has(template.id)) return;
+        targetGroup.templates.push(normalizeTemplate(template));
+      });
+      return;
+    }
+    next.templateGroups = next.templateGroups || [];
+    next.templateGroups.push({
+      id: templateGroup.id || uid("template-group"),
+      name: templateGroup.name || t("defaultTemplateGroup"),
+      templates: Array.isArray(templateGroup.templates) ? templateGroup.templates.map(normalizeTemplate) : []
+    });
   });
 
   return next;
@@ -1076,6 +1104,11 @@ function normalizeGroupName(value) {
   return nextValue || t("defaultGroup");
 }
 
+function normalizeTemplateGroupName(value) {
+  const nextValue = typeof value === "string" ? value.trim() : "";
+  return nextValue || t("defaultTemplateGroup");
+}
+
 function slug(value) {
   return value
     .toLowerCase()
@@ -1270,6 +1303,11 @@ function normalizeCaptureSettings(value) {
   };
 }
 
+function normalizeNavSettings(value) {
+  const source = (typeof value === "object" && value) || {};
+  return { enabled: source.enabled !== false };
+}
+
 function normalizeCustomField(field) {
   return {
     id: field.id || uid("field"),
@@ -1279,10 +1317,110 @@ function normalizeCustomField(field) {
   };
 }
 
+function markerTemplateFromEnvironment(environment, templateName = "") {
+  const name = String(templateName || environment?.name || t("settingsTemplate")).trim() || t("settingsTemplate");
+  return {
+    id: uid("template"),
+    name,
+    badge: typeof environment?.badge === "string" ? environment.badge : "",
+    badgeEnabled: environment?.badgeEnabled !== false,
+    badgeColor: environment?.badgeColor || "#2563eb",
+    badgeTextColor: environment?.badgeTextColor || "#ffffff",
+    badgeStyle: environment?.badgeStyle || "slanted",
+    badgePosition: environment?.badgePosition || "top-right",
+    badgeScale: Number(environment?.badgeScale ?? 1),
+    badgeSize: Number(environment?.badgeSize ?? 14),
+    badgeOffset: Number(environment?.badgeOffset ?? 12),
+    badgeOpacity: Number(environment?.badgeOpacity ?? 1),
+    watermarkText:
+      typeof environment?.watermarkText === "string"
+        ? environment.watermarkText
+        : typeof environment?.name === "string"
+          ? environment.name
+          : "",
+    watermarkEnabled: environment?.watermarkEnabled === true,
+    watermarkColor: environment?.watermarkColor || environment?.badgeColor || "#2563eb",
+    watermarkOpacity: Number(environment?.watermarkOpacity ?? 0.08),
+    watermarkAngle: Number(environment?.watermarkAngle ?? -24),
+    watermarkSize: Number(environment?.watermarkSize ?? 42),
+    watermarkGap: Number(environment?.watermarkGap ?? 80),
+    titlePrefix: environment?.titlePrefix !== false,
+    captureSettings: normalizeCaptureSettings(environment?.captureSettings),
+    navSettings: normalizeNavSettings(environment?.navSettings)
+  };
+}
+
+function normalizeTemplate(template) {
+  const source = (typeof template === "object" && template) || {};
+  const normalized = markerTemplateFromEnvironment(source, source.name || t("settingsTemplate"));
+  normalized.id = source.id || uid("template");
+  return normalized;
+}
+
+function normalizeTemplateGroups(value) {
+  const sourceGroups = Array.isArray(value) ? value : [];
+  const groups = sourceGroups
+    .map((group) => {
+      const name = typeof group?.name === "string" && group.name.trim()
+        ? group.name.trim()
+        : t("defaultTemplateGroup");
+      return {
+        id: group?.id || uid("template-group"),
+        name,
+        templates: Array.isArray(group?.templates) ? group.templates.map(normalizeTemplate) : []
+      };
+    })
+    .filter((group) => group.id);
+
+  if (!groups.length) {
+    groups.push({ id: DEFAULT_TEMPLATE_GROUP_ID, name: t("defaultTemplateGroup"), templates: [] });
+  } else if (!groups.some((group) => group.id === DEFAULT_TEMPLATE_GROUP_ID)) {
+    groups.unshift({ id: DEFAULT_TEMPLATE_GROUP_ID, name: t("defaultTemplateGroup"), templates: [] });
+  }
+
+  return groups;
+}
+
+function findTemplate(templateId) {
+  const id = String(templateId || "");
+  if (!id) return null;
+  for (const group of settings.templateGroups || []) {
+    const template = (group.templates || []).find((item) => item.id === id);
+    if (template) return { group, template };
+  }
+  return null;
+}
+
+function applyTemplateToEnvironment(environment, template) {
+  if (!environment || !template) return;
+  Object.assign(environment, {
+    badge: template.badge || environment.badge || environment.name || "",
+    badgeEnabled: template.badgeEnabled !== false,
+    badgeColor: template.badgeColor || "#2563eb",
+    badgeTextColor: template.badgeTextColor || "#ffffff",
+    badgeStyle: template.badgeStyle || "slanted",
+    badgePosition: template.badgePosition || "top-right",
+    badgeScale: Number(template.badgeScale ?? 1),
+    badgeSize: Number(template.badgeSize ?? 14),
+    badgeOffset: Number(template.badgeOffset ?? 12),
+    badgeOpacity: Number(template.badgeOpacity ?? 1),
+    watermarkText: template.watermarkText || environment.watermarkText || environment.name || "",
+    watermarkEnabled: template.watermarkEnabled === true,
+    watermarkColor: template.watermarkColor || template.badgeColor || "#2563eb",
+    watermarkOpacity: Number(template.watermarkOpacity ?? 0.08),
+    watermarkAngle: Number(template.watermarkAngle ?? -24),
+    watermarkSize: Number(template.watermarkSize ?? 42),
+    watermarkGap: Number(template.watermarkGap ?? 80),
+    titlePrefix: template.titlePrefix !== false,
+    captureSettings: normalizeCaptureSettings(template.captureSettings)
+  });
+}
+
 function normalizeSettings(value) {
   const next = {
     groups: [],
-    environments: Array.isArray(value.environments) ? value.environments : []
+    environments: Array.isArray(value.environments) ? value.environments : [],
+    templateGroups: normalizeTemplateGroups(value.templateGroups)
   };
 
   next.groups = buildGroups(value.groups, next.environments);
@@ -1353,6 +1491,9 @@ function normalizeSettings(value) {
         : [],
       captureSettings: environment.captureSettings
         ? normalizeCaptureSettings(environment.captureSettings)
+        : undefined,
+      navSettings: environment.navSettings
+        ? normalizeNavSettings(environment.navSettings)
         : undefined
   };
   });
@@ -1432,6 +1573,8 @@ function decorateStaticButtons() {
   applyButtonIcon(nodes.importConfigTrigger, "download", t("import"));
   applyButtonIcon(nodes.aboutTrigger, "badgeHelp", t("about"));
   applyButtonIcon(nodes.addGroup, "plus", t("addGroup"));
+  applyButtonIcon(nodes.addTemplateGroup, "plus", t("addTemplateGroup"));
+  applyButtonIcon(nodes.saveTemplateFromEnv, "save", t("saveAsTemplate"));
   applyButtonIcon(nodes.addRule, "plus", t("addRule"));
   applyButtonIcon(nodes.addAccount, "plus", t("addAccount"));
   applyButtonIcon(nodes.save, "save", t("save"));
@@ -1977,6 +2120,104 @@ function renderEnvironmentList() {
   }
 }
 
+function renderTemplateGroupList() {
+  if (!nodes.templateGroupList) return;
+  nodes.templateGroupList.innerHTML = "";
+
+  (settings.templateGroups || []).forEach((group) => {
+    const wrap = document.createElement("section");
+    wrap.className = "template-group";
+
+    const header = document.createElement("div");
+    header.className = "template-group__head";
+
+    const title = document.createElement("div");
+    title.className = "template-group__title";
+    const name = document.createElement("span");
+    name.textContent = group.name;
+    const count = document.createElement("span");
+    count.className = "template-group__count";
+    count.textContent = String((group.templates || []).length);
+    title.append(name, count);
+
+    const tools = document.createElement("div");
+    tools.className = "template-group__tools";
+
+    const addTemplate = createGroupIconButton("plus", "group-icon-button", t("saveAsTemplate"), () => {
+      saveSelectedEnvironmentAsTemplate(group.id);
+    });
+    addTemplate.disabled = !selectedEnvironment();
+    tools.append(addTemplate);
+
+    const rename = createGroupIconButton("edit", "group-icon-button group-icon-button--edit", t("renameTemplateGroup"), () => {
+      renameTemplateGroup(group.id);
+    });
+    tools.append(rename);
+
+    if (group.id !== DEFAULT_TEMPLATE_GROUP_ID) {
+      const removeGroup = createGroupIconButton("trash", "group-icon-button group-icon-button--danger", t("deleteTemplateGroup"), () => {
+        deleteTemplateGroup(group.id);
+      });
+      tools.append(removeGroup);
+    }
+
+    header.append(title, tools);
+    wrap.append(header);
+
+    const list = document.createElement("div");
+    list.className = "template-list";
+
+    if (!group.templates?.length) {
+      const empty = document.createElement("div");
+      empty.className = "empty empty--compact";
+      empty.textContent = t("noTemplates");
+      list.append(empty);
+    } else {
+      group.templates.forEach((template) => {
+        const row = document.createElement("div");
+        row.className = "template-item";
+        row.style.setProperty("--template-color", template.badgeColor || "#2563eb");
+        row.style.setProperty("--template-text-color", template.badgeTextColor || "#ffffff");
+
+        const summary = document.createElement("button");
+        summary.type = "button";
+        summary.className = "template-item__summary";
+        summary.title = t("applyTemplate");
+        summary.addEventListener("click", () => applyTemplateById(template.id));
+
+        const badge = document.createElement("span");
+        badge.className = "template-item__badge";
+        badge.textContent = template.badge || template.name;
+
+        const body = document.createElement("span");
+        body.className = "template-item__body";
+        const templateName = document.createElement("span");
+        templateName.className = "template-item__name";
+        templateName.textContent = template.name;
+        const meta = document.createElement("span");
+        meta.className = "template-item__meta";
+        meta.textContent = [
+          template.badgeEnabled !== false ? t("badgeConfig") : "",
+          template.watermarkEnabled === true ? t("watermarkConfig") : "",
+          template.captureSettings?.enabled !== false ? t("captureSettings") : ""
+        ].filter(Boolean).join(" / ");
+        body.append(templateName, meta);
+        summary.append(badge, body);
+
+        const remove = createGroupIconButton("trash", "group-icon-button group-icon-button--danger", t("deleteTemplate"), () => {
+          deleteTemplate(group.id, template.id);
+        });
+
+        row.append(summary, remove);
+        list.append(row);
+      });
+    }
+
+    wrap.append(list);
+    nodes.templateGroupList.append(wrap);
+  });
+}
+
 function createRuleRow(rule, index) {
   const row = document.createElement("div");
   row.className = "row-card";
@@ -2407,6 +2648,32 @@ function createCaptureSettingsEditor(source, options = {}) {
   return container;
 }
 
+function createNavSettingsEditor(source, options = {}) {
+  const onChange = options.onChange || (() => {});
+  const container = document.createElement("div");
+  container.className = "capture-settings-editor";
+
+  const enabledWrap = document.createElement("label");
+  enabledWrap.className = "toggle-control section-title__toggle capture-enabled-toggle";
+  const enabledInput = document.createElement("input");
+  enabledInput.type = "checkbox";
+  enabledInput.checked = source.enabled !== false;
+  const enabledSwitch = document.createElement("span");
+  enabledSwitch.className = "toggle-control__switch";
+  enabledSwitch.setAttribute("aria-hidden", "true");
+  const enabledText = document.createElement("span");
+  enabledText.textContent = t("navSettingsLabel");
+  enabledWrap.append(enabledInput, enabledSwitch, enabledText);
+  container.append(enabledWrap);
+
+  enabledInput.addEventListener("change", () => {
+    source.enabled = enabledInput.checked;
+    onChange();
+  });
+
+  return container;
+}
+
 function createAccountRow(account, index) {
   const row = document.createElement("div");
   row.className = "row-card account";
@@ -2718,6 +2985,21 @@ function renderEnvCaptureSettings() {
   nodes.envCaptureEditor.append(editor);
 }
 
+function renderEnvNavSettings() {
+  if (!nodes.envNavEditor) return;
+  const environment = selectedEnvironment();
+  nodes.envNavEditor.innerHTML = "";
+  if (!environment) return;
+  const navSettings = normalizeNavSettings(environment.navSettings);
+  const editor = createNavSettingsEditor(navSettings, {
+    onChange: () => {
+      environment.navSettings = normalizeNavSettings(navSettings);
+      markChanged();
+    }
+  });
+  nodes.envNavEditor.append(editor);
+}
+
 function renderForm() {
   const environment = selectedEnvironment();
   const hasEnvironment = Boolean(environment);
@@ -2730,6 +3012,7 @@ function renderForm() {
   nodes.addAccount.disabled = !hasEnvironment;
   nodes.enabled.disabled = !hasEnvironment;
   nodes.save.disabled = !hasEnvironment;
+  if (nodes.saveTemplateFromEnv) nodes.saveTemplateFromEnv.disabled = !hasEnvironment;
   nodes.sectionNavButtons.forEach((button) => {
     button.disabled = !hasEnvironment;
   });
@@ -2762,6 +3045,7 @@ function renderForm() {
   renderRows();
   renderMarkerPreviews();
   renderEnvCaptureSettings();
+  renderEnvNavSettings();
   isRendering = false;
 }
 
@@ -2774,6 +3058,7 @@ function render() {
   }
   decorateStaticButtons();
   renderEnvironmentList();
+  renderTemplateGroupList();
   renderForm();
   syncRailNav();
   positionToolbox();
@@ -2824,6 +3109,82 @@ function addGroup() {
   selectedGroupId = group.id;
   render();
   markChanged();
+}
+
+function addTemplateGroup() {
+  const value = window.prompt(t("promptTemplateGroupName"), "");
+  if (value === null) return;
+  const name = normalizeTemplateGroupName(value);
+  if ((settings.templateGroups || []).some((group) => group.name === name)) {
+    setStatus(t("templateGroupExists"), true);
+    return;
+  }
+  settings.templateGroups = settings.templateGroups || [];
+  settings.templateGroups.push({ id: uid("template-group"), name, templates: [] });
+  renderTemplateGroupList();
+  markChanged();
+}
+
+function renameTemplateGroup(groupId) {
+  const group = (settings.templateGroups || []).find((item) => item.id === groupId);
+  if (!group) return;
+  const value = window.prompt(t("promptRenameTemplateGroup"), group.name);
+  if (value === null) return;
+  const name = normalizeTemplateGroupName(value);
+  if ((settings.templateGroups || []).some((item) => item.id !== groupId && item.name === name)) {
+    setStatus(t("templateGroupExists"), true);
+    return;
+  }
+  group.name = name;
+  renderTemplateGroupList();
+  markChanged();
+}
+
+function deleteTemplateGroup(groupId) {
+  const group = (settings.templateGroups || []).find((item) => item.id === groupId);
+  if (!group || group.id === DEFAULT_TEMPLATE_GROUP_ID) return;
+  if (!window.confirm(t("confirmDeleteTemplateGroup", [group.name]))) return;
+  settings.templateGroups = (settings.templateGroups || []).filter((item) => item.id !== groupId);
+  renderTemplateGroupList();
+  markChanged();
+}
+
+function saveSelectedEnvironmentAsTemplate(groupId = DEFAULT_TEMPLATE_GROUP_ID) {
+  const environment = selectedEnvironment();
+  if (!environment) return;
+  settings.templateGroups = normalizeTemplateGroups(settings.templateGroups);
+  const group =
+    settings.templateGroups.find((item) => item.id === groupId) ||
+    settings.templateGroups.find((item) => item.id === DEFAULT_TEMPLATE_GROUP_ID) ||
+    settings.templateGroups[0];
+  if (!group) return;
+  const value = window.prompt(t("promptTemplateName"), environment.name || t("settingsTemplate"));
+  if (value === null) return;
+  const name = String(value || "").trim() || environment.name || t("settingsTemplate");
+  group.templates = group.templates || [];
+  group.templates.push(markerTemplateFromEnvironment(environment, name));
+  renderTemplateGroupList();
+  markChanged();
+  setStatus(t("templateSaved"));
+}
+
+function deleteTemplate(groupId, templateId) {
+  const group = (settings.templateGroups || []).find((item) => item.id === groupId);
+  if (!group) return;
+  group.templates = (group.templates || []).filter((template) => template.id !== templateId);
+  renderTemplateGroupList();
+  markChanged();
+}
+
+function applyTemplateById(templateId) {
+  const environment = selectedEnvironment();
+  const found = findTemplate(templateId);
+  if (!environment || !found) return;
+  applyTemplateToEnvironment(environment, found.template);
+  clearBasicValidationError();
+  render();
+  markChanged();
+  setStatus(t("templateApplied"));
 }
 
 function renameGroup(groupId) {
@@ -3168,6 +3529,8 @@ bindNodeEvent(nodes.addAccount, "click", () => {
 });
 
 bindNodeEvent(nodes.addGroup, "click", addGroup);
+bindNodeEvent(nodes.addTemplateGroup, "click", addTemplateGroup);
+bindNodeEvent(nodes.saveTemplateFromEnv, "click", () => saveSelectedEnvironmentAsTemplate(DEFAULT_TEMPLATE_GROUP_ID));
 bindNodeEvent(nodes.deleteEnvironment, "click", deleteEnvironment);
 bindNodeEvent(nodes.save, "click", saveSettings);
 bindNodeEvent(nodes.localeSwitcher, "change", async () => {
