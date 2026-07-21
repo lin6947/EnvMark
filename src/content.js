@@ -11,6 +11,17 @@
     bodyWidth: 240,
     bodyMaxHeight: 280
   };
+  const NAV_FALLBACK_BG = "#0f172a";
+  const NAV_FALLBACK_FG = "#ffffff";
+  const NAV_ICON_SVG =
+    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' +
+    '<line x1="8" y1="6" x2="21" y2="6"/>' +
+    '<line x1="8" y1="12" x2="21" y2="12"/>' +
+    '<line x1="8" y1="18" x2="21" y2="18"/>' +
+    '<circle cx="3.5" cy="6" r="1.5" fill="currentColor" stroke="none"/>' +
+    '<circle cx="3.5" cy="12" r="1.5" fill="currentColor" stroke="none"/>' +
+    '<circle cx="3.5" cy="18" r="1.5" fill="currentColor" stroke="none"/>' +
+    "</svg>";
   let activeEnvironment = null;
   let activeSettings = null;
   let originalTitle = document.title;
@@ -19,6 +30,12 @@
   let autoFillKey = "";
   let autoFillTimer = null;
   let autoFillObserver = null;
+  let capturePanelObserver = null;
+  let capturePanelSyncTimer = null;
+  let navigatorPanel = null;
+  let navigatorExpandedGroups = new Set();
+  let navigatorOutsideClickHandler = null;
+  let navigatorEscapeHandler = null;
 
   function t(key, substitutions) {
     const message = chrome.i18n.getMessage(key, substitutions);
@@ -44,6 +61,10 @@
       document.title = originalTitle;
       titleApplied = false;
     }
+  }
+
+  function removeCapturePanels() {
+    document.querySelectorAll('[data-envmate-root="capture"]').forEach((node) => node.remove());
   }
 
   function markerLabel(environment) {
@@ -92,6 +113,77 @@
   function shouldShowBadge(environment) {
     if (typeof environment.badgeEnabled === "boolean") return environment.badgeEnabled;
     return environment.markerMode !== "watermark";
+  }
+
+  function normalizeNavSettings(value) {
+    const source = (typeof value === "object" && value) || {};
+    return { enabled: source.enabled !== false };
+  }
+
+  function resolveNavSettings(environment) {
+    return normalizeNavSettings(environment && environment.navSettings);
+  }
+
+  function shouldShowNavigator(environment) {
+    if (!environment) return false;
+    return resolveNavSettings(environment).enabled === true;
+  }
+
+  function isValidNavUrl(url) {
+    if (typeof url !== "string" || !url.trim()) return false;
+    return /^https?:\/\//i.test(url) || url.startsWith("//");
+  }
+
+  function resolveGroupIdForNav(settings, rawGroupId) {
+    const gid = rawGroupId || "default";
+    const exists = (settings && settings.groups || []).some((g) => g.id === gid);
+    return exists ? gid : "default";
+  }
+
+  function resolveGroupNameForNav(settings, gid) {
+    const groups = (settings && settings.groups) || [];
+    const found = groups.find((g) => g.id === gid);
+    return (found && found.name) || "Default Group";
+  }
+
+  function groupedEnvironmentsForNav(settings, matchedEnv) {
+    const environments = (settings && settings.environments) || [];
+    const eligible = environments.filter(
+      (env) => env && env.enabled !== false && isValidNavUrl(env.homepageUrl)
+    );
+
+    const byGroup = new Map();
+    for (const env of eligible) {
+      const gid = resolveGroupIdForNav(settings, env.groupId);
+      if (!byGroup.has(gid)) byGroup.set(gid, []);
+      byGroup.get(gid).push(env);
+    }
+
+    const matchedGroupId = resolveGroupIdForNav(
+      settings,
+      matchedEnv && matchedEnv.groupId
+    );
+    const orderedGroupIds = [];
+
+    if (byGroup.has(matchedGroupId)) {
+      orderedGroupIds.push(matchedGroupId);
+    }
+    const groups = (settings && settings.groups) || [];
+    for (const g of groups) {
+      if (g.id === matchedGroupId) continue;
+      if (byGroup.has(g.id) && !orderedGroupIds.includes(g.id)) {
+        orderedGroupIds.push(g.id);
+      }
+    }
+    // Orphan groups not declared in settings.groups (defensive — shouldn't normally happen)
+    for (const gid of byGroup.keys()) {
+      if (!orderedGroupIds.includes(gid)) orderedGroupIds.push(gid);
+    }
+
+    return orderedGroupIds.map((gid) => ({
+      group: { id: gid, name: resolveGroupNameForNav(settings, gid) },
+      environments: byGroup.get(gid) || []
+    }));
   }
 
   function clearAutoFill() {
@@ -158,6 +250,7 @@
     const username = String(account.username || "").trim();
     const label = String(account.label || "").trim();
     const primaryText = username || label || t("accountFallback");
+    const remarkText = username && label ? label : "";
 
     const row = document.createElement("button");
     row.type = "button";
@@ -165,17 +258,22 @@
     row.classList.toggle("is-default", Boolean(account.defaultFill));
     row.title = accountDisplayLabel(account);
 
+    const content = document.createElement("span");
+    content.className = "envmate-capture-panel__content";
+
     const name = document.createElement("span");
     name.className = "envmate-capture-panel__name";
     name.textContent = primaryText;
-    row.append(name);
+    content.append(name);
 
-    if (username && label) {
-      const tag = document.createElement("span");
-      tag.className = "envmate-capture-panel__tag";
-      tag.textContent = label;
-      row.append(tag);
+    if (remarkText) {
+      const remark = document.createElement("span");
+      remark.className = "envmate-capture-panel__remark";
+      remark.textContent = remarkText;
+      content.append(remark);
     }
+
+    row.append(content);
 
     const customFieldsCount = (account.customFields || []).length;
     if (customFieldsCount > 0) {
@@ -266,6 +364,7 @@
   }
 
   function createCapturePanel(environment) {
+    if (document.querySelector('[data-envmate-root="capture"]')) return;
     const panel = document.createElement("div");
     panel.className = "envmate-capture-panel";
     panel.dataset.envmateRoot = "capture";
@@ -302,6 +401,57 @@
     document.documentElement.append(panel);
   }
 
+  function clearCapturePanelSync() {
+    if (capturePanelSyncTimer) {
+      window.clearTimeout(capturePanelSyncTimer);
+      capturePanelSyncTimer = null;
+    }
+    if (capturePanelObserver) {
+      capturePanelObserver.disconnect();
+      capturePanelObserver = null;
+    }
+  }
+
+  function syncCapturePanelVisibility(environment = activeEnvironment) {
+    capturePanelSyncTimer = null;
+    if (!environment) {
+      removeCapturePanels();
+      return;
+    }
+
+    const shouldShow = shouldShowCaptureButton(environment, resolveLoginInputs());
+    const existingPanel = document.querySelector('[data-envmate-root="capture"]');
+    if (shouldShow) {
+      if (!existingPanel) createCapturePanel(environment);
+      return;
+    }
+    if (existingPanel) removeCapturePanels();
+  }
+
+  function scheduleCapturePanelSync(environment = activeEnvironment) {
+    if (!environment) return;
+    if (capturePanelSyncTimer) window.clearTimeout(capturePanelSyncTimer);
+    capturePanelSyncTimer = window.setTimeout(() => {
+      syncCapturePanelVisibility(environment);
+    }, 160);
+  }
+
+  function startCapturePanelSync(environment) {
+    clearCapturePanelSync();
+    syncCapturePanelVisibility(environment);
+    const root = document.body || document.documentElement;
+    if (!root) return;
+    capturePanelObserver = new MutationObserver(() => {
+      scheduleCapturePanelSync(environment);
+    });
+    capturePanelObserver.observe(root, {
+      childList: true,
+      subtree: true,
+      attributes: true,
+      attributeFilter: ["class", "style", "hidden", "type", "disabled", "readonly", "aria-hidden"]
+    });
+  }
+
   function createBadge(environment, settings) {
     const badge = document.createElement("div");
     badge.className = "envmate-badge";
@@ -323,11 +473,6 @@
 
     enableBadgePeekThrough(badge);
     document.documentElement.append(badge);
-
-    const resolvedForCapture = resolveLoginInputs();
-    if (shouldShowCaptureButton(environment, resolvedForCapture)) {
-      createCapturePanel(environment);
-    }
   }
 
   function createWatermark(environment) {
@@ -356,6 +501,7 @@
 
   function applyMarkers(settings) {
     activeSettings = settings;
+    clearCapturePanelSync();
     removeMarkers();
     clearAutoFill();
 
@@ -369,6 +515,7 @@
     applyTitle(environment);
     if (shouldShowWatermark(environment)) createWatermark(environment);
     if (shouldShowBadge(environment)) createBadge(environment, settings);
+    startCapturePanelSync(environment);
     scheduleDefaultFill(environment);
   }
 
@@ -388,21 +535,23 @@
     };
   }
 
+  function isVisibleInput(input) {
+    if (!input || input.disabled || input.readOnly) return false;
+    const rect = input.getBoundingClientRect();
+    const style = window.getComputedStyle(input);
+    return rect.width > 0 && rect.height > 0 && style.visibility !== "hidden" && style.display !== "none";
+  }
+
   function findInput(candidates) {
     for (const selector of candidates) {
       const input = document.querySelector(selector);
-      if (input && !input.disabled && !input.readOnly) return input;
+      if (isVisibleInput(input)) return input;
     }
     return null;
   }
 
   function visibleInputs() {
-    return Array.from(document.querySelectorAll("input, textarea")).filter((input) => {
-      if (input.disabled || input.readOnly) return false;
-      const rect = input.getBoundingClientRect();
-      const style = window.getComputedStyle(input);
-      return rect.width > 0 && rect.height > 0 && style.visibility !== "hidden" && style.display !== "none";
-    });
+    return Array.from(document.querySelectorAll("input, textarea")).filter(isVisibleInput);
   }
 
   function inferInputs() {
