@@ -30,6 +30,7 @@
       "watermarkGap": 80,
       "titlePrefix": true,
       "markerMode": "badge-watermark",
+      "navSettings": { "enabled": true },
       "rules": [{ "type": "wildcard", "value": "https://prod.example.com/*" }],
       "accounts": []
     },
@@ -59,6 +60,7 @@
       "watermarkGap": 80,
       "titlePrefix": true,
       "markerMode": "badge",
+      "navSettings": { "enabled": true },
       "rules": [{ "type": "wildcard", "value": "https://dev.example.com/*" }],
       "accounts": []
     }
